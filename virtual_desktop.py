@@ -22,8 +22,11 @@ def get_env(display=DEFAULT_DISPLAY):
     env["DISPLAY"] = display
     if "WAYLAND_DISPLAY" in env:
         del env["WAYLAND_DISPLAY"]
+    env["XDG_SESSION_TYPE"] = "x11"
     env["GDK_BACKEND"] = "x11"
     env["QT_QPA_PLATFORM"] = "xcb"
+    env["CHROME_OZONE_PLATFORM"] = "x11"
+    env["OZONE_PLATFORM"] = "x11"
     return env
 
 def is_display_active(display=DEFAULT_DISPLAY):
@@ -181,7 +184,9 @@ def list_windows(display=DEFAULT_DISPLAY):
                 text=True
             )
             title = name_res.stdout.strip()
-            details.append({"id": wid, "title": title})
+            # 过滤掉底层 X11 内部框架与无标题幽灵子窗口
+            if title:
+                details.append({"id": wid, "title": title})
         return details
     except Exception as e:
         print(f"[-] Error listing windows: {e}")
@@ -407,7 +412,9 @@ if __name__ == "__main__":
     p_sess.add_argument("--no-browser", action="store_true", help="Do not auto-open browser window")
 
     p_live = subparsers.add_parser("live", help="Start web live stream monitor")
+    p_live.add_argument("port_pos", nargs="?", type=int, default=None, help="HTTP port positional")
     p_live.add_argument("--port", type=int, default=9999, help="HTTP port (default: 9999)")
+    p_live.add_argument("--display", default=DEFAULT_DISPLAY, help="Display target (default: :99)")
 
     p_shot = subparsers.add_parser("screenshot", help="Take a screenshot")
     p_shot.add_argument("path", nargs="?", default="/tmp/screen.png", help="Output file path")
@@ -437,7 +444,8 @@ if __name__ == "__main__":
     elif args.action == "prepare":
         prepare_session(args.port, args.display, open_browser=not args.no_browser)
     elif args.action == "live":
-        start_live_monitor(args.port, args.display)
+        effective_port = args.port_pos or args.port or 9999
+        start_live_monitor(effective_port, args.display)
     elif args.action == "status":
         active = is_display_active(args.display)
         print(f"Display {args.display} active: {active}")
