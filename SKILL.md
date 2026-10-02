@@ -1,16 +1,16 @@
 ---
 name: linux-headless-computer-use
-description: Linux 无头虚拟桌面（Headless Xvfb + xdotool + scrot）与静默 Computer Use 自动化技能。在不占用物理屏幕、不打扰用户当前工作的前提下，在后台内存开辟独立 X11 虚拟显示器（默认 :99），启动图形软件（浏览器、Hanako、桌面应用），执行高保真模拟点击、键盘输入、窗口控制与毫秒级截屏。支持多实例并发测试、GUI 自动化与端到端质检。当用户需要在 Linux 下进行后台 GUI 测试、无感操作桌面软件、模拟点击、后台截屏、测试 Hanako 插件或应用、或者进行免硬控 Computer Use 时使用。
+description: Linux 无头虚拟桌面（Headless Xvfb + xdotool + scrot）与静默 Computer Use 自动化技能。专为 HanaAgent (Hanako, https://github.com/HanaAgent) 生态设计。在不占用物理屏幕、不打扰用户当前工作的前提下，在后台内存开辟独立 X11 虚拟显示器（默认 :99），启动图形软件（浏览器、Hanako、桌面应用），执行高保真模拟点击、键盘输入、窗口控制与毫秒级截屏。支持多实例并发测试、GUI 自动化与端到端质检。当用户需要在 Linux 下进行后台 GUI 测试、无感操作桌面软件、模拟点击、后台截屏、测试 Hanako 插件或应用、或者进行免硬控 Computer Use 时使用。
 ---
 
 # Linux Headless Computer Use — 无感后台桌面自动化技能
 
 ## 概述
-本 Skill 赋予 AI 在 Linux（特别是现代 Wayland 环境）下进行**完全无感、不抢鼠标、独立沙箱化**的真实桌面 GUI 自动化操作能力。
+本 Skill 为 [HanaAgent (Hanako)](https://github.com/HanaAgent) 赋予在 Linux（特别是现代 Wayland 环境）下进行**完全无感、不抢鼠标、独立沙箱化**的真实桌面 GUI 自动化操作能力。
 
 ### 为什么采用虚拟显示器架构？
 1. **彻底终结“抢鼠标硬控”**：在 Windows 上，传统 Computer Use 必须直接抢夺物理光标，导致用户无法操作电脑；而在本架构下，AI 在后台独立的 X11 虚拟显存中（默认 `:99`）操作，物理屏幕与鼠标 100% 自由。
-2. **完美规避 Wayland 安全锁死**：Wayland 默认禁止任何客户端软件获取全局绝对坐标或随意截屏；而在后台拉起独立的 X11 虚拟屏，AI 拥有 100% 的绝对神权（无感全屏截屏、精确坐标注入、无权限弹窗）。
+2. **完美规避 Wayland 安全锁死**：Wayland 默认禁止任何客户端软件获取全局绝对坐标或随意截屏；而在后台拉起独立的 X11 虚拟屏，AI 拥有 100% 的绝对特权（无感全屏截屏、精确坐标注入、无权限弹窗）。
 
 ---
 
@@ -74,7 +74,7 @@ import time
 # 确保环境就绪
 vd.ensure_running(display=":99", resolution="1920x1080x24")
 
-# 启动目标程序
+# 启动被测软件
 pid = vd.launch("DISPLAY=:99 GDK_BACKEND=x11 gnome-calculator &")
 time.sleep(1.5)
 

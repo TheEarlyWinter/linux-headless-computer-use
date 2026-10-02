@@ -1,11 +1,11 @@
 # Linux Headless Computer Use 🖥️⚡
 
-> **告别物理抢鼠标硬控！专为 AI Agent（HanaAgent、Claude Computer Use、自定义桌面 Agent）打造的 Linux 无感后台桌面自动化沙箱技能。**
+> **告别物理抢鼠标硬控！专为 AI Agent（[HanaAgent](https://github.com/HanaAgent) / Hanako、Claude Computer Use、自定义桌面 Agent）打造的 Linux 无感后台桌面自动化沙箱技能。**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Platform: Linux](https://img.shields.io/badge/Platform-Linux%20(Ubuntu%2FFedora%2FArch)-orange.svg)]()
 [![Pure Python](https://img.shields.io/badge/Python-3.10%2B%20(Standard%20Lib)-green.svg)]()
-[![HanaAgent Skill](https://img.shields.io/badge/HanaAgent-Skill%20Ready-purple.svg)]()
+[![HanaAgent Skill](https://img.shields.io/badge/HanaAgent-Hanako%20Skill-purple.svg?logo=github)](https://github.com/HanaAgent)
 
 ---
 
@@ -93,15 +93,24 @@ print("测试截图已生成:", shot_path)
 
 ---
 
-## 🤖 作为 HanaAgent 技能使用
+## 🤖 作为 HanaAgent (Hanako) 技能使用
 
-本项目完全遵循 HanaAgent 技能规范，内置 `SKILL.md`。
+本项目原生为 **[HanaAgent (Hanako)](https://github.com/HanaAgent)** 生态量身打造，内置标准规范的 `SKILL.md`。
 
-1. 将本目录放置在 `~/.hanako/skills/工具/linux-headless-computer-use/`；
-2. 在 HanaAgent 中，系统将自动识别并激活该 Skill；
-3. 以后只需对 Agent 吩咐：
-   > *“在后台虚拟屏里启动软件 XXX，测试点击某个按钮并截张图汇报。”*
-   Agent 将自动调度本技能完成全流程闭环，全程零打扰！
+### 安装到 Hanako
+* **方式一：Git 克隆**
+  ```bash
+  cd ~/.hanako/skills/工具/
+  git clone https://github.com/TheEarlyWinter/linux-headless-computer-use.git
+  ```
+* **方式二：手动放置**
+  直接将本项目目录放置在 `~/.hanako/skills/工具/linux-headless-computer-use/`，HanaAgent 会自动识别并注册。
+
+### 在 Hanako 中体验
+在与 HanaAgent 会话时，直接自然语言吩咐：
+> *“在后台虚拟屏里启动软件 XXX，测试点击某个按钮并截张图汇报。”*
+
+Agent 将自动调度本技能完成全流程闭环，全程零打扰、零抢夺！
 
 ---
 
