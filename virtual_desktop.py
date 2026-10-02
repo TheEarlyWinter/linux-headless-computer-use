@@ -8,6 +8,7 @@ Linux Headless Virtual Desktop (Computer Use Helper)
 import sys
 import os
 import time
+import socket
 import subprocess
 import argparse
 
@@ -34,6 +35,17 @@ def is_display_active(display=DEFAULT_DISPLAY):
         return res.returncode == 0
     except Exception:
         return False
+
+def is_port_open(port):
+    s = socket.socket()
+    s.settimeout(0.5)
+    try:
+        s.connect(("127.0.0.1", port))
+        return True
+    except Exception:
+        return False
+    finally:
+        s.close()
 
 def ensure_running(display=DEFAULT_DISPLAY, resolution=DEFAULT_RES):
     """确保虚拟显示器和基础窗口管理器已启动"""
@@ -167,6 +179,11 @@ def start_live_monitor(port=9999, display=DEFAULT_DISPLAY):
         def log_message(self, format, *args):
             pass
 
+        def do_HEAD(self):
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.end_headers()
+
         def do_GET(self):
             parsed = urllib.parse.urlparse(self.path)
             if parsed.path == "/":
@@ -240,14 +257,52 @@ def start_live_monitor(port=9999, display=DEFAULT_DISPLAY):
                 self.send_response(204)
                 self.end_headers()
 
-    server = socketserver.ThreadingTCPServer(("127.0.0.1", port), StreamHandler)
-    server.allow_reuse_address = True
+    class ReusableServer(socketserver.ThreadingTCPServer):
+        allow_reuse_address = True
+
+    server = ReusableServer(("127.0.0.1", port), StreamHandler)
     print(f"[+] Live monitor streaming at: http://127.0.0.1:{port}")
     try:
         server.serve_forever()
     except KeyboardInterrupt:
         print("\n[*] Stopping live monitor...")
         server.shutdown()
+
+def prepare_session(port=9999, display=DEFAULT_DISPLAY, open_browser=True):
+    """自动准备完整工作会话：确保虚拟屏启动，拉起实时监视服务，并在用户主屏弹出监视窗口"""
+    ensure_running(display)
+    
+    # 确保后台直播服务运行
+    if not is_port_open(port):
+        script_path = os.path.abspath(__file__)
+        subprocess.Popen(
+            [sys.executable, script_path, "live", "--port", str(port), "--display", display],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL
+        )
+        for _ in range(30):
+            time.sleep(0.1)
+            if is_port_open(port):
+                break
+        print(f"[+] Live monitor service running on port {port}")
+    else:
+        print(f"[+] Live monitor service is already running on port {port}")
+
+    # 自动弹出主屏幕画中画监视器
+    if open_browser:
+        url = f"http://127.0.0.1:{port}"
+        try:
+            # 呼叫 Chrome 以独立 App 模式弹出，无地址栏与标签栏，纯净高级
+            subprocess.Popen(
+                ["google-chrome", f"--app={url}"],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL
+            )
+            print(f"[+] Opened desktop surveillance window: {url}")
+        except Exception as e:
+            print(f"[-] Could not auto-launch browser window: {e}")
+    
+    return True
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Linux Headless Computer Use CLI")
@@ -256,6 +311,10 @@ if __name__ == "__main__":
     subparsers.add_parser("start", help="Start the virtual display")
     subparsers.add_parser("stop", help="Stop the virtual display")
     subparsers.add_parser("status", help="Check status and list windows")
+
+    p_sess = subparsers.add_parser("prepare", help="Prepare session: start display, live service, and pop up viewer")
+    p_sess.add_argument("--port", type=int, default=9999, help="Live monitor port (default: 9999)")
+    p_sess.add_argument("--no-browser", action="store_true", help="Do not auto-open browser window")
 
     p_live = subparsers.add_parser("live", help="Start web live stream monitor")
     p_live.add_argument("--port", type=int, default=9999, help="HTTP port (default: 9999)")
@@ -285,6 +344,8 @@ if __name__ == "__main__":
         ensure_running(args.display)
     elif args.action == "stop":
         stop_display(args.display)
+    elif args.action == "prepare":
+        prepare_session(args.port, args.display, open_browser=not args.no_browser)
     elif args.action == "live":
         start_live_monitor(args.port, args.display)
     elif args.action == "status":
