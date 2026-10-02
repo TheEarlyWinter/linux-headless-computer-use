@@ -29,12 +29,36 @@
 * **`Xvfb`**：X Virtual Framebuffer，负责在内存中虚构无头显示器（默认 `:99`）；
 * **`xdotool`**：负责模拟鼠标移动、单击、双击、文本键入与功能按键；
 * **`scrot`**：负责虚拟屏幕内的毫秒级无感截屏；
-* **`openbox`**：轻量级窗口管理器，为虚拟屏内的应用提供真实焦点、边框与层级管理。
+* **`openbox`**：轻量级窗口管理器，为虚拟屏内的应用提供真实焦点、边框与层级管理；
+* **`ffmpeg`**：提供 1080P 60FPS 超低延迟硬件级内存共享串流（可选）。
 
 ### Ubuntu / Debian 一键安装依赖
 ```bash
 sudo apt update && sudo apt install -y xvfb xdotool scrot openbox ffmpeg
 ```
+
+---
+
+## 实时画中画监视器（1080P 60FPS 极速串流）
+
+无感操作不代表黑盒盲跑。为了让用户在鼠标完全自由的同时拥有 100% 的掌控感，本项目内置了**电竞级超低延迟实时监视系统**：
+
+1. **自动起播与物理桌面弹窗 (`prepare`)**：
+   Agent 在开始执行桌面操作前，只需运行一行命令：
+   ```bash
+   python3 virtual_desktop.py prepare --port 9999
+   ```
+   * 自动探测并拉起后台 `:99` 虚拟显存空间；
+   * 启动本地 20~60 FPS 极速推流服务；
+   * **自动穿透物理显示通道（`:0` / Wayland）**，向用户的前台桌面弹出一个无地址栏、无标签栏的纯净独立 Chrome 监视小窗，全程零手动配置。
+
+2. **1080P 60FPS 满血点对点与硬件直通**：
+   * 基于 FFmpeg MIT-SHM（X11 共享内存）零拷贝抓取，整机延迟低于 25ms，画面丝滑如电竞直播；
+   * 支持一键在“自适应缩放”与“1920x1080 像素 1:1 点对点”之间切换，支持网页一键全屏。
+
+3. **隔空点击穿透接管**：
+   * 用户若在监视器窗口中发现异常或弹窗，可直接在网页画面上点击鼠标；
+   * 点击事件将毫秒级反向投影并注入到后台虚拟屏幕中，实现无缝人工介入接管。
 
 ---
 
@@ -45,32 +69,27 @@ sudo apt update && sudo apt install -y xvfb xdotool scrot openbox ffmpeg
 内置的 `virtual_desktop.py` 纯 Python 标准库编写，零三方库依赖，开箱即用：
 
 ```bash
-# 检查虚拟屏状态（不存在会自动启动）
-python3 virtual_desktop.py status
+# 1. 自动准备会话：启动虚拟屏、开启直播推流并在前台弹出监视窗
+python3 virtual_desktop.py prepare --port 9999
 
-# 在虚拟房间里启动目标应用（以 X11 模式运行）
+# 2. 在虚拟房间里启动目标应用（以 X11 模式运行）
 python3 virtual_desktop.py launch "DISPLAY=:99 GDK_BACKEND=x11 gnome-calculator &"
 
-# 模拟鼠标移动并点击 (X=500, Y=300)
+# 3. 模拟鼠标移动并点击 (X=500, Y=300)
 python3 virtual_desktop.py click 500 300
 
-# 模拟键盘打字
+# 4. 模拟键盘打字
 python3 virtual_desktop.py type "Hello AI"
 
-# 模拟功能按键（Return, Escape, ctrl+s 等）
+# 5. 模拟功能按键（Return, Escape, ctrl+s 等）
 python3 virtual_desktop.py key Return
 
-# 截屏并保存到指定路径
+# 6. 截屏并保存到指定路径
 python3 virtual_desktop.py screenshot /tmp/result.png
 
-# 任务结束关闭虚拟屏
+# 7. 任务结束关闭虚拟屏
 python3 virtual_desktop.py stop
-
-# 启动本地网页实时直播间（1080P 60FPS 电竞级超低延迟串流）
-python3 virtual_desktop.py live --port 9999
 ```
-
-在 Chrome 中访问 `http://127.0.0.1:9999`，即可实时观看 1080P 60FPS 满血画质的 AI 后台操作实况，支持 1:1 点对点、全屏沉浸与直接点击接管。
 
 ### 2. Python 模块级集成
 
@@ -80,8 +99,8 @@ python3 virtual_desktop.py live --port 9999
 import virtual_desktop as vd
 import time
 
-# 确保后台虚拟屏幕就绪（1920x1080）
-vd.ensure_running(display=":99", resolution="1920x1080x24")
+# 启动环境并自动向前台弹出监视视窗
+vd.prepare_session(port=9999, display=":99", open_browser=True)
 
 # 启动被测软件
 pid = vd.launch("DISPLAY=:99 GDK_BACKEND=x11 gnome-text-editor &")
@@ -101,7 +120,7 @@ print("测试截图已生成:", shot_path)
 
 ## 作为 HanaAgent (Hanako) 技能使用
 
-本项目原生为 **[HanaAgent (Hanako)]** 生态量身打造，内置标准规范的 `SKILL.md`。
+本项目原生为 **[HanaAgent (Hanako)](https://github.com/HanaAgent)** 生态量身打造，内置标准规范的 `SKILL.md`。
 
 ### 安装到 Hanako
 * **方式一：Git 克隆**
