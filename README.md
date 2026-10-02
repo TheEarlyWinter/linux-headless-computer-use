@@ -1,6 +1,6 @@
 # Linux Headless Computer Use
 
-> **告别物理抢鼠标硬控！专为 AI Agent（[HanaAgent](https://github.com/HanaAgent) / Hanako、Claude Computer Use、自定义桌面 Agent）打造的 Linux 无感后台桌面自动化沙箱技能。**
+> **告别物理抢鼠标硬控！专为 AI Agent（HanaAgent / Hanako、Claude Computer Use、自定义桌面 Agent）打造的 Linux 无感后台桌面自动化沙箱技能。**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Platform: Linux](https://img.shields.io/badge/Platform-Linux%20(Ubuntu%2FFedora%2FArch)-orange.svg)]()
