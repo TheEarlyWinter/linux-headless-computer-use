@@ -86,10 +86,28 @@ def ensure_running(display=DEFAULT_DISPLAY, resolution=DEFAULT_RES):
     return True
 
 def stop_display(display=DEFAULT_DISPLAY):
-    """停止指定的虚拟显示器"""
+    """停止指定的虚拟显示器及关联的推流服务和窗口管理器"""
     display_num = display.lstrip(":")
+    # 1. 关闭推流监控服务 (9999 端口关联进程)
+    subprocess.run(["pkill", "-f", "virtual_desktop.py live"], stderr=subprocess.DEVNULL)
+    subprocess.run(["pkill", "-f", "ffmpeg -f x11grab.*:99"], stderr=subprocess.DEVNULL)
+    
+    # 2. 关闭 Openbox 窗口管理器
+    subprocess.run(["pkill", "-f", f"openbox.*"], stderr=subprocess.DEVNULL)
+    
+    # 3. 关闭 Xvfb 虚拟屏幕主进程
     subprocess.run(["pkill", "-f", f"Xvfb {display}"], stderr=subprocess.DEVNULL)
-    print(f"[*] Stopped Xvfb on {display}")
+    
+    # 4. 清理 X11 锁文件，防止下次启动报错
+    lock_file = f"/tmp/.X{display_num}-lock"
+    sock_file = f"/tmp/.X11-unix/X{display_num}"
+    try:
+        if os.path.exists(lock_file): os.remove(lock_file)
+        if os.path.exists(sock_file): os.remove(sock_file)
+    except Exception:
+        pass
+        
+    print(f"[*] Cleanly stopped display {display}, window manager, and stream services.")
 
 def screenshot(output_path="/tmp/screen.png", display=DEFAULT_DISPLAY):
     """在虚拟屏幕中进行毫秒级截屏"""
