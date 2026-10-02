@@ -6,6 +6,7 @@
 [![Platform: Linux](https://img.shields.io/badge/Platform-Linux%20(Ubuntu%2FFedora%2FArch)-orange.svg)]()
 [![Pure Python](https://img.shields.io/badge/Python-3.10%2B%20(Standard%20Lib)-green.svg)]()
 [![HanaAgent Skill](https://img.shields.io/badge/HanaAgent-Hanako%20Skill-purple.svg?logo=github)](https://github.com/HanaAgent)
+[![Powered by OpenHanako](https://img.shields.io/badge/Powered%20by-OpenHanako-black.svg?logo=github)](https://github.com/liliMozi/openhanako)
 
 ---
 
@@ -111,6 +112,14 @@ print("测试截图已生成:", shot_path)
 > *“在后台虚拟屏里启动软件 XXX，测试点击某个按钮并截张图汇报。”*
 
 Agent 将自动调度本技能完成全流程闭环，全程零打扰、零抢夺。
+
+---
+
+## 致谢
+
+本项目依托并致敬以下开源基石与生态构建者：
+
+* **[OpenHanako / HanaAgent](https://github.com/liliMozi/openhanako)**：由 [@liliMozi](https://github.com/liliMozi) 倾力打造的个人 AI Agent 平台（生态组织 [@HanaAgent](https://github.com/HanaAgent)）。特别致谢 liliMozi 与 OpenHanako 社区为 AI 原生交互提供的卓越架构与生态土壤。
 
 ---
 
