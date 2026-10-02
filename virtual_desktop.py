@@ -17,6 +17,8 @@ DEFAULT_RES = "1920x1080x24"
 def get_env(display=DEFAULT_DISPLAY):
     env = os.environ.copy()
     env["DISPLAY"] = display
+    if "WAYLAND_DISPLAY" in env:
+        del env["WAYLAND_DISPLAY"]
     env["GDK_BACKEND"] = "x11"
     env["QT_QPA_PLATFORM"] = "xcb"
     return env
@@ -153,6 +155,100 @@ def list_windows(display=DEFAULT_DISPLAY):
         print(f"[-] Error listing windows: {e}")
         return []
 
+def start_live_monitor(port=9999, display=DEFAULT_DISPLAY):
+    """启动本地网页实时直播间（零额外依赖，纯标准库 + scrot）"""
+    import http.server
+    import socketserver
+    import urllib.parse
+
+    ensure_running(display)
+
+    class StreamHandler(http.server.BaseHTTPRequestHandler):
+        def log_message(self, format, *args):
+            pass
+
+        def do_GET(self):
+            parsed = urllib.parse.urlparse(self.path)
+            if parsed.path == "/":
+                html = f"""<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>AI 隐形房间实时监视器 ({display})</title>
+    <style>
+        * {{ box-sizing: border-box; margin: 0; padding: 0; }}
+        body {{ background: #090a0f; color: #e4e4e7; font-family: system-ui, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; overflow: hidden; }}
+        .header {{ display: flex; align-items: center; justify-content: space-between; width: 100%; max-width: 1280px; padding: 12px 16px; font-size: 13px; color: #a1a1aa; }}
+        .status-dot {{ display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #10b981; margin-right: 6px; box-shadow: 0 0 8px #10b981; }}
+        .screen-container {{ position: relative; max-width: 1280px; width: 95vw; aspect-ratio: 16/10; border: 1px solid #27272a; border-radius: 8px; overflow: hidden; background: #000; box-shadow: 0 20px 50px rgba(0,0,0,0.6); }}
+        img {{ width: 100%; height: 100%; object-fit: contain; display: block; cursor: crosshair; }}
+        .tips {{ margin-top: 10px; font-size: 12px; color: #71717a; }}
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div><span class="status-dot"></span> 实时监控: 虚拟隐形房间 ({display})</div>
+        <div>点击画面可直接注入鼠标操作</div>
+    </div>
+    <div class="screen-container">
+        <img id="stream" src="/stream" alt="Live Stream" />
+    </div>
+    <div class="tips">无感运行中 · 物理主屏幕与鼠标 100% 自由</div>
+    <script>
+        const img = document.getElementById("stream");
+        img.addEventListener("click", (e) => {{
+            const rect = img.getBoundingClientRect();
+            const scaleX = 1920 / rect.width;
+            const scaleY = 1080 / rect.height;
+            const x = Math.round((e.clientX - rect.left) * scaleX);
+            const y = Math.round((e.clientY - rect.top) * scaleY);
+            fetch(`/click?x=${{x}}&y=${{y}}`);
+        }});
+    </script>
+</body>
+</html>"""
+                self.send_response(200)
+                self.send_header("Content-Type", "text/html; charset=utf-8")
+                self.end_headers()
+                self.wfile.write(html.encode("utf-8"))
+            elif parsed.path == "/stream":
+                self.send_response(200)
+                self.send_header("Content-Type", "multipart/x-mixed-replace; boundary=frame")
+                self.send_header("Cache-Control", "no-cache, private")
+                self.end_headers()
+                env = get_env(display)
+                tmp_jpg = f"/tmp/live_stream_{display.replace(':', '')}.jpg"
+                try:
+                    while True:
+                        subprocess.run(
+                            ["scrot", "-p", "-z", "-o", "-q", "80", tmp_jpg],
+                            env=env,
+                            stdout=subprocess.DEVNULL,
+                            stderr=subprocess.DEVNULL
+                        )
+                        if os.path.exists(tmp_jpg):
+                            with open(tmp_jpg, "rb") as f:
+                                frame = f.read()
+                            self.wfile.write(b"--frame\r\nContent-Type: image/jpeg\r\n\r\n" + frame + b"\r\n")
+                        time.sleep(0.05)
+                except Exception:
+                    pass
+            elif parsed.path == "/click":
+                q = urllib.parse.parse_qs(parsed.query)
+                if "x" in q and "y" in q:
+                    click(int(q["x"][0]), int(q["y"][0]), display=display)
+                self.send_response(204)
+                self.end_headers()
+
+    server = socketserver.ThreadingTCPServer(("127.0.0.1", port), StreamHandler)
+    server.allow_reuse_address = True
+    print(f"[+] Live monitor streaming at: http://127.0.0.1:{port}")
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        print("\n[*] Stopping live monitor...")
+        server.shutdown()
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Linux Headless Computer Use CLI")
     subparsers = parser.add_subparsers(dest="action", required=True)
@@ -160,6 +256,9 @@ if __name__ == "__main__":
     subparsers.add_parser("start", help="Start the virtual display")
     subparsers.add_parser("stop", help="Stop the virtual display")
     subparsers.add_parser("status", help="Check status and list windows")
+
+    p_live = subparsers.add_parser("live", help="Start web live stream monitor")
+    p_live.add_argument("--port", type=int, default=9999, help="HTTP port (default: 9999)")
 
     p_shot = subparsers.add_parser("screenshot", help="Take a screenshot")
     p_shot.add_argument("path", nargs="?", default="/tmp/screen.png", help="Output file path")
@@ -186,6 +285,8 @@ if __name__ == "__main__":
         ensure_running(args.display)
     elif args.action == "stop":
         stop_display(args.display)
+    elif args.action == "live":
+        start_live_monitor(args.port, args.display)
     elif args.action == "status":
         active = is_display_active(args.display)
         print(f"Display {args.display} active: {active}")

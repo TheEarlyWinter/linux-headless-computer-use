@@ -58,6 +58,9 @@ python3 "$VD" key ctrl+s
 
 # 7. 测试完毕关闭虚拟屏（如需常驻可不执行）
 python3 "$VD" stop
+
+# 8. 启动本地实时网页监视器（允许用户在浏览器实时观看 AI 操控画面）
+python3 "$VD" live --port 9999
 ```
 
 ---
