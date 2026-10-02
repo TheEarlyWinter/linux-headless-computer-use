@@ -1,0 +1,10 @@
+__pycache__/
+*.py[cod]
+*$py.class
+*.png
+*.jpg
+*.jpeg
+*.log
+.DS_Store
+.vscode/
+.idea/
