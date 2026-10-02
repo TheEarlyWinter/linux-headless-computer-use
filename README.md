@@ -96,7 +96,7 @@ print("测试截图已生成:", shot_path)
 
 ## 作为 HanaAgent (Hanako) 技能使用
 
-本项目原生为 **[HanaAgent (Hanako)](https://github.com/HanaAgent)** 生态量身打造，内置标准规范的 `SKILL.md`。
+本项目原生为 **[HanaAgent (Hanako)]** 生态量身打造，内置标准规范的 `SKILL.md`。
 
 ### 安装到 Hanako
 * **方式一：Git 克隆**
