@@ -353,17 +353,24 @@ def prepare_session(port=9999, display=DEFAULT_DISPLAY, open_browser=True):
     else:
         print(f"[+] Live monitor service is already running on port {port}")
 
-    # 自动弹出主屏幕画中画监视器
+    # 自动弹出主屏幕画中画监视器（显式指定物理主屏幕环境变量，防止在虚拟屏里套娃）
     if open_browser:
         url = f"http://127.0.0.1:{port}"
         try:
-            # 呼叫 Chrome 以全分辨率 App 模式弹出，无地址栏与标签栏，满血 1080P
+            host_env = os.environ.copy()
+            host_env["DISPLAY"] = ":0"
+            host_env["WAYLAND_DISPLAY"] = "wayland-0"
+            host_env["XDG_RUNTIME_DIR"] = "/run/user/1000"
+            if "GDK_BACKEND" in host_env:
+                del host_env["GDK_BACKEND"]
+
             subprocess.Popen(
                 ["google-chrome", f"--app={url}", "--start-maximized"],
+                env=host_env,
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL
             )
-            print(f"[+] Opened desktop surveillance window (1080P 60FPS): {url}")
+            print(f"[+] Opened desktop surveillance window (1080P 60FPS) on host display: {url}")
         except Exception as e:
             print(f"[-] Could not auto-launch browser window: {e}")
     
