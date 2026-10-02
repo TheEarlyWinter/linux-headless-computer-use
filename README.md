@@ -33,7 +33,7 @@
 
 ### Ubuntu / Debian 一键安装依赖
 ```bash
-sudo apt update && sudo apt install -y xvfb xdotool scrot openbox
+sudo apt update && sudo apt install -y xvfb xdotool scrot openbox ffmpeg
 ```
 
 ---
@@ -66,11 +66,11 @@ python3 virtual_desktop.py screenshot /tmp/result.png
 # 任务结束关闭虚拟屏
 python3 virtual_desktop.py stop
 
-# 启动本地网页实时直播间（像看直播一样围观 AI 干活）
+# 启动本地网页实时直播间（1080P 60FPS 电竞级超低延迟串流）
 python3 virtual_desktop.py live --port 9999
 ```
 
-在 Chrome 中访问 `http://127.0.0.1:9999`，即可实时观看 AI 在后台房间里操作软件的全过程，甚至可以直接点击网页画面接管鼠标。
+在 Chrome 中访问 `http://127.0.0.1:9999`，即可实时观看 1080P 60FPS 满血画质的 AI 后台操作实况，支持 1:1 点对点、全屏沉浸与直接点击接管。
 
 ### 2. Python 模块级集成
 

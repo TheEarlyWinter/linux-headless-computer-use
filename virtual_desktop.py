@@ -2,13 +2,15 @@
 """
 Linux Headless Virtual Desktop (Computer Use Helper)
 为 AI Agent 打造的无感后台 X11 虚拟屏幕控制套件。
-纯标准库实现，依赖: Xvfb, xdotool, scrot, openbox。
+支持 1080P 60FPS 极速硬件串流与无感桌面操控。
+依赖: Xvfb, xdotool, scrot, openbox, ffmpeg (可选用于 60FPS 串流)。
 """
 
 import sys
 import os
 import time
 import socket
+import shutil
 import subprocess
 import argparse
 
@@ -168,7 +170,7 @@ def list_windows(display=DEFAULT_DISPLAY):
         return []
 
 def start_live_monitor(port=9999, display=DEFAULT_DISPLAY):
-    """启动本地网页实时直播间（零额外依赖，纯标准库 + scrot）"""
+    """启动本地网页实时直播间（支持 1080P 60FPS 极速串流）"""
     import http.server
     import socketserver
     import urllib.parse
@@ -191,35 +193,66 @@ def start_live_monitor(port=9999, display=DEFAULT_DISPLAY):
 <html>
 <head>
     <meta charset="utf-8">
-    <title>AI 隐形房间实时监视器 ({display})</title>
+    <title>AI 虚拟桌面 1080P 60FPS 实时监视器 ({display})</title>
     <style>
         * {{ box-sizing: border-box; margin: 0; padding: 0; }}
-        body {{ background: #090a0f; color: #e4e4e7; font-family: system-ui, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; overflow: hidden; }}
-        .header {{ display: flex; align-items: center; justify-content: space-between; width: 100%; max-width: 1280px; padding: 12px 16px; font-size: 13px; color: #a1a1aa; }}
-        .status-dot {{ display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #10b981; margin-right: 6px; box-shadow: 0 0 8px #10b981; }}
-        .screen-container {{ position: relative; max-width: 1280px; width: 95vw; aspect-ratio: 16/10; border: 1px solid #27272a; border-radius: 8px; overflow: hidden; background: #000; box-shadow: 0 20px 50px rgba(0,0,0,0.6); }}
-        img {{ width: 100%; height: 100%; object-fit: contain; display: block; cursor: crosshair; }}
-        .tips {{ margin-top: 10px; font-size: 12px; color: #71717a; }}
+        body {{ background: #090a0f; color: #e4e4e7; font-family: system-ui, -apple-system, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; height: 100vh; width: 100vw; overflow: hidden; }}
+        .header {{ display: flex; align-items: center; justify-content: space-between; width: 100%; height: 42px; padding: 0 16px; font-size: 13px; color: #a1a1aa; background: #12131a; border-bottom: 1px solid #27272a; flex-shrink: 0; }}
+        .left-meta {{ display: flex; align-items: center; gap: 10px; }}
+        .status-dot {{ display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #10b981; box-shadow: 0 0 8px #10b981; }}
+        .badge {{ background: #27272a; color: #10b981; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-family: monospace; font-weight: bold; border: 1px solid #059669; }}
+        .btn {{ background: #1f2029; border: 1px solid #3f3f46; color: #e4e4e7; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; transition: all 0.2s; }}
+        .btn:hover {{ background: #27272a; border-color: #71717a; }}
+        .viewport {{ flex: 1; width: 100%; height: calc(100vh - 42px); display: flex; align-items: center; justify-content: center; background: #000; overflow: auto; position: relative; }}
+        .screen-container {{ position: relative; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }}
+        img {{ max-width: 100%; max-height: 100%; aspect-ratio: 16/9; object-fit: contain; display: block; cursor: crosshair; image-rendering: -webkit-optimize-contrast; }}
+        .native-mode img {{ max-width: none; max-height: none; width: 1920px; height: 1080px; }}
     </style>
 </head>
 <body>
     <div class="header">
-        <div><span class="status-dot"></span> 实时监控: 虚拟隐形房间 ({display})</div>
-        <div>点击画面可直接注入鼠标操作</div>
+        <div class="left-meta">
+            <span class="status-dot"></span>
+            <span>AI 实时监视器 ({display})</span>
+            <span class="badge">1920 x 1080 · 60 FPS 满血电竞级串流</span>
+        </div>
+        <div style="display:flex; gap:8px;">
+            <button class="btn" id="toggle-size">切换 1:1 点对点 / 自适应</button>
+            <button class="btn" id="btn-fullscreen">网页全屏</button>
+        </div>
     </div>
-    <div class="screen-container">
-        <img id="stream" src="/stream" alt="Live Stream" />
+    <div class="viewport" id="viewport">
+        <div class="screen-container">
+            <img id="stream" src="/stream" alt="Live Stream 1080P 60FPS" />
+        </div>
     </div>
-    <div class="tips">无感运行中 · 物理主屏幕与鼠标 100% 自由</div>
     <script>
         const img = document.getElementById("stream");
+        const viewport = document.getElementById("viewport");
+        const toggleBtn = document.getElementById("toggle-size");
+        const fsBtn = document.getElementById("btn-fullscreen");
+
+        toggleBtn.addEventListener("click", () => {{
+            viewport.classList.toggle("native-mode");
+        }});
+
+        fsBtn.addEventListener("click", () => {{
+            if (!document.fullscreenElement) {{
+                document.documentElement.requestFullscreen();
+            }} else {{
+                document.exitFullscreen();
+            }}
+        }});
+
         img.addEventListener("click", (e) => {{
             const rect = img.getBoundingClientRect();
             const scaleX = 1920 / rect.width;
             const scaleY = 1080 / rect.height;
             const x = Math.round((e.clientX - rect.left) * scaleX);
             const y = Math.round((e.clientY - rect.top) * scaleY);
-            fetch(`/click?x=${{x}}&y=${{y}}`);
+            if (x >= 0 && x <= 1920 && y >= 0 && y <= 1080) {{
+                fetch(`/click?x=${{x}}&y=${{y}}`);
+            }}
         }});
     </script>
 </body>
@@ -229,27 +262,59 @@ def start_live_monitor(port=9999, display=DEFAULT_DISPLAY):
                 self.end_headers()
                 self.wfile.write(html.encode("utf-8"))
             elif parsed.path == "/stream":
-                self.send_response(200)
-                self.send_header("Content-Type", "multipart/x-mixed-replace; boundary=frame")
-                self.send_header("Cache-Control", "no-cache, private")
-                self.end_headers()
-                env = get_env(display)
-                tmp_jpg = f"/tmp/live_stream_{display.replace(':', '')}.jpg"
-                try:
-                    while True:
-                        subprocess.run(
-                            ["scrot", "-p", "-z", "-o", "-q", "80", tmp_jpg],
-                            env=env,
-                            stdout=subprocess.DEVNULL,
-                            stderr=subprocess.DEVNULL
-                        )
-                        if os.path.exists(tmp_jpg):
-                            with open(tmp_jpg, "rb") as f:
-                                frame = f.read()
-                            self.wfile.write(b"--frame\r\nContent-Type: image/jpeg\r\n\r\n" + frame + b"\r\n")
-                        time.sleep(0.05)
-                except Exception:
-                    pass
+                has_ffmpeg = shutil.which("ffmpeg") is not None
+                if has_ffmpeg:
+                    self.send_response(200)
+                    self.send_header("Content-Type", "multipart/x-mixed-replace; boundary=ffmpeg")
+                    self.send_header("Cache-Control", "no-cache, private")
+                    self.end_headers()
+                    env = get_env(display)
+                    cmd = [
+                        "ffmpeg",
+                        "-f", "x11grab",
+                        "-draw_mouse", "1",
+                        "-framerate", "60",
+                        "-video_size", "1920x1080",
+                        "-i", display,
+                        "-c:v", "mjpeg",
+                        "-q:v", "3",
+                        "-f", "mpjpeg",
+                        "-"
+                    ]
+                    proc = subprocess.Popen(cmd, env=env, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+                    try:
+                        while True:
+                            chunk = proc.stdout.read(65536)
+                            if not chunk:
+                                break
+                            self.wfile.write(chunk)
+                            self.wfile.flush()
+                    except Exception:
+                        pass
+                    finally:
+                        proc.terminate()
+                else:
+                    self.send_response(200)
+                    self.send_header("Content-Type", "multipart/x-mixed-replace; boundary=frame")
+                    self.send_header("Cache-Control", "no-cache, private")
+                    self.end_headers()
+                    env = get_env(display)
+                    tmp_jpg = f"/tmp/live_stream_{display.replace(':', '')}.jpg"
+                    try:
+                        while True:
+                            subprocess.run(
+                                ["scrot", "-p", "-z", "-o", "-q", "90", tmp_jpg],
+                                env=env,
+                                stdout=subprocess.DEVNULL,
+                                stderr=subprocess.DEVNULL
+                            )
+                            if os.path.exists(tmp_jpg):
+                                with open(tmp_jpg, "rb") as f:
+                                    frame = f.read()
+                                self.wfile.write(b"--frame\r\nContent-Type: image/jpeg\r\n\r\n" + frame + b"\r\n")
+                            time.sleep(0.04)
+                    except Exception:
+                        pass
             elif parsed.path == "/click":
                 q = urllib.parse.parse_qs(parsed.query)
                 if "x" in q and "y" in q:
@@ -270,7 +335,7 @@ def start_live_monitor(port=9999, display=DEFAULT_DISPLAY):
 
 def prepare_session(port=9999, display=DEFAULT_DISPLAY, open_browser=True):
     """自动准备完整工作会话：确保虚拟屏启动，拉起实时监视服务，并在用户主屏弹出监视窗口"""
-    ensure_running(display)
+    ensure_running(display, resolution=DEFAULT_RES)
     
     # 确保后台直播服务运行
     if not is_port_open(port):
@@ -292,13 +357,13 @@ def prepare_session(port=9999, display=DEFAULT_DISPLAY, open_browser=True):
     if open_browser:
         url = f"http://127.0.0.1:{port}"
         try:
-            # 呼叫 Chrome 以独立 App 模式弹出，无地址栏与标签栏，纯净高级
+            # 呼叫 Chrome 以全分辨率 App 模式弹出，无地址栏与标签栏，满血 1080P
             subprocess.Popen(
-                ["google-chrome", f"--app={url}"],
+                ["google-chrome", f"--app={url}", "--start-maximized"],
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL
             )
-            print(f"[+] Opened desktop surveillance window: {url}")
+            print(f"[+] Opened desktop surveillance window (1080P 60FPS): {url}")
         except Exception as e:
             print(f"[-] Could not auto-launch browser window: {e}")
     
