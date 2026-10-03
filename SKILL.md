@@ -1,12 +1,23 @@
 ---
 name: linux-headless-computer-use
-description: Linux 无头虚拟桌面（Headless Xvfb + xdotool + scrot）与静默 Computer Use 自动化技能。专为 HanaAgent (Hanako, https://github.com/HanaAgent) 生态设计。在不占用物理屏幕、不打扰用户当前工作的前提下，在后台内存开辟独立 X11 虚拟显示器（默认 :99），启动图形软件（浏览器、Hanako、桌面应用），执行高保真模拟点击、键盘输入、窗口控制与毫秒级截屏。支持多实例并发测试、GUI 自动化与端到端质检。当用户需要在 Linux 下进行后台 GUI 测试、无感操作桌面软件、模拟点击、后台截屏、测试 Hanako 插件或应用、或者进行免硬控 Computer Use 时使用。
+description: Linux 无头虚拟桌面（Headless Xvfb + xdotool + scrot）与静默 Computer Use 自动化技能。专为 HanaAgent (Hanako, https://github.com/HanaAgent) 生态设计。在不占用物理屏幕、不打扰用户当前工作的前提下，在后台内存开辟独立 X11 虚拟显示器（默认 :99），启动图形软件（浏览器、Hanako、桌面应用），执行高保真模拟点击、键盘输入、窗口控制与毫秒级截屏。支持多实例并发测试、GUI 自动化与端到端质检。触发技能且用户未明确选择可视或静默模式时，必须先询问是否打开前台监控窗口。当用户需要在 Linux 下进行后台 GUI 测试、无感操作桌面软件、模拟点击、后台截屏、测试 Hanako 插件或应用、或者进行免硬控 Computer Use 时使用。
 ---
 
 # Linux Headless Computer Use — 无感后台桌面自动化技能
 
 ## 概述
-本 Skill 为 [HanaAgent (Hanako)](https://github.com/HanaAgent) 赋予在 Linux（特别是现代 Wayland 环境）下进行**完全无感、不抢鼠标、独立沙箱化**的真实桌面 GUI 自动化操作能力。
+本 Skill 为 [HanaAgent (Hanako)](https://github.com/HanaAgent) 赋予在 Linux（特别是现代 Wayland 环境）下进行**完全无感、不抢鼠标、独立沙箱化**的真实桌面 GUI 自动化操作能力。前台监控是可选的可视模式，不是默认副作用；触发技能时先与用户确认。
+
+### 启动前的可视模式确认（必须遵守）
+
+触发本 Skill 后，先判断用户意图：
+
+- 用户明确说“打开监控”“让我看”“实时观察”时，直接使用 `prepare(..., open_browser=True)`。
+- 用户明确说“后台运行”“静默测试”“不要打扰桌面”时，直接使用 `prepare(..., open_browser=False)`。
+- 用户没有明确选择时，先只问一次：
+  > 这次要打开监控窗口让你实时查看吗？要打开前台监控，还是后台静默运行？
+- 用户选定后，本次会话固定该模式，不在每次点击、输入或截图前重复询问。
+- 不要在用户未选择时先启动 `start`/`live`，再补问监控模式。
 
 ### 为什么采用虚拟显示器架构？
 1. **彻底终结“抢鼠标硬控”**：在 Windows 上，传统 Computer Use 必须直接抢夺物理光标，导致用户无法操作电脑；而在本架构下，AI 在后台独立的 X11 虚拟显存中（默认 `:99`）操作，物理屏幕与鼠标 100% 自由。
@@ -34,27 +45,33 @@ Agent 可以直接通过终端命令执行全套原子操作：
 ```bash
 VD=~/.hanako/skills/工具/linux-headless-computer-use/virtual_desktop.py
 
-# 1. 检查或启动虚拟显示器 :99
-python3 "$VD" status
-python3 "$VD" start
+# 1. 用户要实时查看时：启动虚拟屏、live 服务并打开前台监控
+python3 "$VD" prepare --display :99 --port 9999
+
+# 1b. 用户选择后台静默时：同样准备会话，但不打开监控窗口
+python3 "$VD" prepare --display :99 --port 9999 --no-browser
+
+# 仅需底层虚拟屏时才使用 start（不会打开监控窗口）
+python3 "$VD" status --display :99
+python3 "$VD" start --display :99
 
 # 2. 在虚拟屏中启动软件（例如独立测试配置的 Hanako 或文本编辑器）
-python3 "$VD" launch "DISPLAY=:99 GDK_BACKEND=x11 gnome-text-editor &"
+python3 "$VD" launch --display :99 "DISPLAY=:99 GDK_BACKEND=x11 gnome-text-editor &"
 # 启动隔离 profile 的测试版 Hanako
-python3 "$VD" launch "DISPLAY=:99 GDK_BACKEND=x11 /opt/HanaAgent/hanako --user-data-dir=/tmp/hanako-test-profile &"
+python3 "$VD" launch --display :99 "DISPLAY=:99 GDK_BACKEND=x11 /opt/HanaAgent/hanako --user-data-dir=/tmp/hanako-test-profile &"
 
 # 3. 截屏并保存
-python3 "$VD" screenshot /tmp/test_screen.png
+python3 "$VD" screenshot --display :99 /tmp/test_screen.png
 
 # 4. 模拟鼠标点击目标坐标 (x, y)
-python3 "$VD" click 640 400
+python3 "$VD" click --display :99 640 400
 
 # 5. 模拟键盘输入文字
-python3 "$VD" type "Hello OpenHanako"
+python3 "$VD" type --display :99 "Hello OpenHanako"
 
 # 6. 按下回车或功能键
-python3 "$VD" key Return
-python3 "$VD" key ctrl+s
+python3 "$VD" key --display :99 Return
+python3 "$VD" key --display :99 ctrl+s
 
 # 7. 测试完毕按目标 display 精确关闭虚拟屏（如需常驻可不执行）
 python3 "$VD" stop --display :99

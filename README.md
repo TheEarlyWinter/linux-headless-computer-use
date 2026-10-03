@@ -64,6 +64,17 @@ sudo apt update && sudo apt install -y xvfb xdotool scrot openbox ffmpeg
 
 ## 快速上手
 
+### 启动前先确认监控模式
+
+当用户没有明确说明时，先询问一次：
+
+> 这次要打开监控窗口让你实时查看吗？要打开前台监控，还是后台静默运行？
+
+- 要看监控：`prepare --display <display> --port <port>`
+- 后台静默：`prepare --display <display> --port <port> --no-browser`
+- 用户已明确表达“打开监控”或“后台静默”时，直接执行对应模式，不重复询问。
+- 一旦模式确定，本次会话固定该选择；所有输入和截图操作都显式传入同一个 `--display`。
+
 ### 1. 终端命令行（CLI）
 
 内置的 `virtual_desktop.py` 纯 Python 标准库编写，零三方库依赖，开箱即用：
@@ -75,19 +86,19 @@ python3 virtual_desktop.py prepare --port 9999
 python3 virtual_desktop.py prepare --display :101 --port 9999
 
 # 2. 在虚拟房间里启动目标应用（以 X11 模式运行）
-python3 virtual_desktop.py launch "DISPLAY=:99 GDK_BACKEND=x11 gnome-calculator &"
+python3 virtual_desktop.py launch --display :99 "DISPLAY=:99 GDK_BACKEND=x11 gnome-calculator &"
 
 # 3. 模拟鼠标移动并点击 (X=500, Y=300)
-python3 virtual_desktop.py click 500 300
+python3 virtual_desktop.py click --display :99 500 300
 
 # 4. 模拟键盘打字
-python3 virtual_desktop.py type "Hello AI"
+python3 virtual_desktop.py type --display :99 "Hello AI"
 
 # 5. 模拟功能按键（Return, Escape, ctrl+s 等）
-python3 virtual_desktop.py key Return
+python3 virtual_desktop.py key --display :99 Return
 
 # 6. 截屏并保存到指定路径
-python3 virtual_desktop.py screenshot /tmp/result.png
+python3 virtual_desktop.py screenshot --display :99 /tmp/result.png
 
 # 7. 任务结束关闭本工具创建的虚拟屏及其服务
 python3 virtual_desktop.py stop --display :99
@@ -109,13 +120,13 @@ vd.prepare_session(port=9999, display=":99", open_browser=True)
 pid = vd.launch("DISPLAY=:99 GDK_BACKEND=x11 gnome-text-editor &")
 time.sleep(1.5)
 
-# 点击并输入
-vd.click(400, 300)
-vd.type_text("自动化测试通过！")
-vd.press_key("Return")
+# 点击并输入（所有操作显式绑定同一虚拟 display）
+vd.click(400, 300, display=":99")
+vd.type_text("自动化测试通过！", display=":99")
+vd.press_key("Return", display=":99")
 
 # 截取当前测试画面
-shot_path = vd.screenshot("/tmp/test_report.png")
+shot_path = vd.screenshot("/tmp/test_report.png", display=":99")
 print("测试截图已生成:", shot_path)
 ```
 
