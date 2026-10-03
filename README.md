@@ -71,6 +71,8 @@ sudo apt update && sudo apt install -y xvfb xdotool scrot openbox ffmpeg
 ```bash
 # 1. 自动准备会话：启动虚拟屏、开启直播推流并在前台弹出监视窗
 python3 virtual_desktop.py prepare --port 9999
+# 自定义虚拟屏；--display 放在子命令前后都可以
+python3 virtual_desktop.py prepare --display :101 --port 9999
 
 # 2. 在虚拟房间里启动目标应用（以 X11 模式运行）
 python3 virtual_desktop.py launch "DISPLAY=:99 GDK_BACKEND=x11 gnome-calculator &"
@@ -87,8 +89,9 @@ python3 virtual_desktop.py key Return
 # 6. 截屏并保存到指定路径
 python3 virtual_desktop.py screenshot /tmp/result.png
 
-# 7. 任务结束关闭虚拟屏
-python3 virtual_desktop.py stop
+# 7. 任务结束关闭本工具创建的虚拟屏及其服务
+python3 virtual_desktop.py stop --display :99
+# stop 按目标 display 精确匹配服务；无法证明归属的进程不会被杀
 ```
 
 ### 2. Python 模块级集成

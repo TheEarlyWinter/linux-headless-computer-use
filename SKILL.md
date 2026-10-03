@@ -56,11 +56,12 @@ python3 "$VD" type "Hello OpenHanako"
 python3 "$VD" key Return
 python3 "$VD" key ctrl+s
 
-# 7. 测试完毕关闭虚拟屏（如需常驻可不执行）
-python3 "$VD" stop
+# 7. 测试完毕按目标 display 精确关闭虚拟屏（如需常驻可不执行）
+python3 "$VD" stop --display :99
+# --display 也可以放在子命令前：python3 "$VD" --display :99 stop
 
 # 8. 启动本地实时网页监视器（支持 1080P 60FPS 电竞级串流）
-python3 "$VD" live --port 9999
+python3 "$VD" live --port 9999 --display :99
 ```
 
 ---
